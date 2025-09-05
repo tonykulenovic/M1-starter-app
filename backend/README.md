@@ -17,7 +17,7 @@
 
    ```
     PORT=3000
-    JWT_SECRET=access_token_id
+    JWT_SECRET=your_generated_secret_value
     GOOGLE_CLIENT_ID=google_web_client_id
     MONGODB_URI=mongodb_uri
    ```
