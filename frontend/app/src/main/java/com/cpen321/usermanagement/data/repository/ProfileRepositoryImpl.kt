@@ -24,7 +24,8 @@ class ProfileRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userInterface: UserInterface,
     private val hobbyInterface: HobbyInterface,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val imageInterface: ImageInterface
 ) : ProfileRepository {
 
     companion object {
@@ -140,4 +141,70 @@ class ProfileRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun deleteAccount(): Result<Unit> {
+        return try {
+            val response = userInterface.deleteProfile("")
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorBodyString = response.errorBody()?.string()
+                val errorMessage = parseErrorMessage(errorBodyString, "Failed to delete account.")
+                Log.e(TAG, "Delete account failed: $errorMessage")
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: java.net.SocketTimeoutException) {
+            Log.e(TAG, "Network timeout while deleting account", e)
+            Result.failure(e)
+        } catch (e: java.net.UnknownHostException) {
+            Log.e(TAG, "Network connection failed while deleting account", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            Log.e(TAG, "IO error while deleting account", e)
+            Result.failure(e)
+        } catch (e: retrofit2.HttpException) {
+            Log.e(TAG, "HTTP error while deleting account: ${e.code()}", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun uploadProfilePicture(uri: Uri): Result<User> {
+        return try {
+            val imageFile = uriToFile(context, uri)
+            val requestBody = imageFile.asRequestBody("image/*".toMediaType())
+            val part = MultipartBody.Part.createFormData("media", imageFile.name, requestBody)
+
+            val uploadResponse = imageInterface.uploadPicture("", part)
+            if (!uploadResponse.isSuccessful || uploadResponse.body()?.data?.image == null) {
+                val errorBodyString = uploadResponse.errorBody()?.string()
+                val errorMessage = parseErrorMessage(errorBodyString, "Failed to upload profile picture.")
+                Log.e(TAG, "Upload image failed: $errorMessage")
+                return Result.failure(Exception(errorMessage))
+            }
+
+            val uploadedPath = uploadResponse.body()!!.data!!.image
+            val updateResponse = userInterface.updateProfile("", UpdateProfileRequest(profilePicture = uploadedPath))
+            if (updateResponse.isSuccessful && updateResponse.body()?.data?.user != null) {
+                Result.success(updateResponse.body()!!.data!!.user)
+            } else {
+                val errorBodyString = updateResponse.errorBody()?.string()
+                val errorMessage = parseErrorMessage(errorBodyString, "Failed to update profile picture.")
+                Log.e(TAG, "Update profile picture failed: $errorMessage")
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: java.net.SocketTimeoutException) {
+            Log.e(TAG, "Network timeout while uploading profile picture", e)
+            Result.failure(e)
+        } catch (e: java.net.UnknownHostException) {
+            Log.e(TAG, "Network connection failed while uploading profile picture", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            Log.e(TAG, "IO error while uploading profile picture", e)
+            Result.failure(e)
+        } catch (e: retrofit2.HttpException) {
+            Log.e(TAG, "HTTP error while uploading profile picture: ${e.code()}", e)
+            Result.failure(e)
+        }
+    }
+
 }

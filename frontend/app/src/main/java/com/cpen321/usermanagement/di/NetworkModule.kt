@@ -10,6 +10,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import com.cpen321.usermanagement.data.remote.api.BookInterface
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -37,5 +38,11 @@ object NetworkModule {
     @Singleton
     fun provideHobbyService(): HobbyInterface {
         return RetrofitClient.hobbyInterface
+    }
+
+    @Provides
+    @Singleton
+    fun provideBookService(): BookInterface {
+        return RetrofitClient.bookInterface
     }
 }

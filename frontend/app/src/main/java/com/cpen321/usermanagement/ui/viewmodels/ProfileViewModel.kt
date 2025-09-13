@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 data class ProfileUiState(
     // Loading states
@@ -40,6 +43,8 @@ class ProfileViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+
+    private var saveHobbiesJob: kotlinx.coroutines.Job? = null
 
     fun loadProfile() {
         viewModelScope.launch {
@@ -95,6 +100,13 @@ class ProfileViewModel @Inject constructor(
             currentSelected.add(hobby)
         }
         _uiState.value = _uiState.value.copy(selectedHobbies = currentSelected)
+
+        saveHobbiesJob?.cancel()
+        saveHobbiesJob = viewModelScope.launch {
+            delay(500)
+            saveHobbies()
+        }
+
     }
 
     fun saveHobbies() {
@@ -148,9 +160,24 @@ class ProfileViewModel @Inject constructor(
 
     fun uploadProfilePicture(pictureUri: Uri) {
         viewModelScope.launch {
-            val currentUser = _uiState.value.user ?: return@launch
-            val updatedUser = currentUser.copy(profilePicture = pictureUri.toString())
-            _uiState.value = _uiState.value.copy(isLoadingPhoto = false, user= updatedUser, successMessage = "Profile picture updated successfully!")
+            _uiState.value = _uiState.value.copy(
+                isLoadingPhoto = true,
+                errorMessage = null,
+                successMessage = null
+            )
+            val result = profileRepository.uploadProfilePicture(pictureUri)
+            if (result.isSuccess) {
+                _uiState.value = _uiState.value.copy(
+                    isLoadingPhoto = false,
+                    user = result.getOrNull(),
+                    successMessage = "Profile picture updated successfully!"
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isLoadingPhoto = false,
+                    errorMessage = result.exceptionOrNull()?.message ?: "Failed to upload profile picture."
+                )
+            }
         }
     }
 
@@ -180,6 +207,21 @@ class ProfileViewModel @Inject constructor(
                     isSavingProfile = false,
                     errorMessage = errorMessage
                 )
+            }
+        }
+    }
+
+    fun deleteAccount(onSuccess: () -> Unit, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null, isSavingProfile = true)
+            val result = profileRepository.deleteAccount()
+            if (result.isSuccess) {
+                _uiState.value = _uiState.value.copy(isSavingProfile = false, successMessage = "Account deleted successfully!")
+                onSuccess()
+            } else {
+                val message = result.exceptionOrNull()?.message ?: "Failed to delete account."
+                _uiState.value = _uiState.value.copy(isSavingProfile = false, errorMessage = message)
+                onError(message)
             }
         }
     }

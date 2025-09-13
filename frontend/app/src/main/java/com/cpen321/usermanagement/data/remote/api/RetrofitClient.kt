@@ -7,6 +7,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import com.cpen321.usermanagement.data.remote.api.BookInterface
 
 object RetrofitClient {
     private const val BASE_URL = BuildConfig.API_BASE_URL
@@ -34,10 +35,17 @@ object RetrofitClient {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
+    private val openLibraryRetrofit = Retrofit.Builder()
+        .baseUrl("https://openlibrary.org/")
+        .client(httpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
     val authInterface: AuthInterface = retrofit.create(AuthInterface::class.java)
     val imageInterface: ImageInterface = retrofit.create(ImageInterface::class.java)
     val userInterface: UserInterface = retrofit.create(UserInterface::class.java)
     val hobbyInterface: HobbyInterface = retrofit.create(HobbyInterface::class.java)
+    val bookInterface: BookInterface = openLibraryRetrofit.create(BookInterface::class.java)
 
     fun setAuthToken(token: String?) {
         authToken = token

@@ -9,6 +9,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import com.cpen321.usermanagement.data.repository.BookRepository
+import com.cpen321.usermanagement.data.repository.BookRepositoryImpl
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -28,5 +30,13 @@ object RepositoryModule {
         profileRepositoryImpl: ProfileRepositoryImpl
     ): ProfileRepository {
         return profileRepositoryImpl
+    }
+
+    @Provides
+    @Singleton
+    fun provideBookRepository(
+        bookRepositoryImpl: BookRepositoryImpl
+    ): BookRepository {
+        return bookRepositoryImpl
     }
 }

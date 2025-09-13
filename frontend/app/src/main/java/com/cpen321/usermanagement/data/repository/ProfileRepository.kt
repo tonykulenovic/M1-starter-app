@@ -8,4 +8,6 @@ interface ProfileRepository {
     suspend fun updateProfile(name: String, bio: String): Result<User>
     suspend fun updateUserHobbies(hobbies: List<String>): Result<User>
     suspend fun getAvailableHobbies(): Result<List<String>>
+    suspend fun deleteAccount(): Result<Unit>
+    suspend fun uploadProfilePicture(uri: android.net.Uri): Result<com.cpen321.usermanagement.data.remote.dto.User>
 }
